@@ -51,7 +51,7 @@ func ResolveTLSFilesFromDir(tlsDir string) (caCert, cert, key string, err error)
 		return caCert, cert, key, nil
 	}
 
-	return "", "", "", errors.New("error reading one or more of the needed files from directory:\n" + strings.Join(errs, "\n"))
+	return "", "", "", errors.New("error reading one or more of the needed files from directory:\n\t" + strings.Join(errs, "\n\t"))
 }
 
 // ResolveClient resolves a client from CLI args
