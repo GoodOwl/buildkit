@@ -56,6 +56,9 @@ func TestResolveTLSFilesFromDir(t *testing.T) {
 		require.Empty(t, certOut)
 		require.Empty(t, keyOut)
 		require.Error(t, err)
+		// Error will include the first missing file of each set
+		require.Contains(t, err.Error(), "ca.pem")
+		require.Contains(t, err.Error(), "tls.crt")
 	})
 
 	t.Run("all files present for cert-manager and pem styles and pem is chosen", func(t *testing.T) {

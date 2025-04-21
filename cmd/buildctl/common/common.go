@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -18,17 +19,25 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
-}
-
-// ResolveTLSFilesFromDir scans a TLS directory for known cert/key filenames.
+// ResolveTLSFilesFromDir searches for required TLS files in a directory.
+// It tries (ca.pem, cert.pem, key.pem), then (ca.crt, tls.crt, tls.key).
+// All 3 must exist in one set, else an error is returned.
 func ResolveTLSFilesFromDir(tlsDir string) (caCert, cert, key string, err error) {
+	var errs []string
+
 	trySet := func(ca, certFile, keyFile string) (string, string, string, bool) {
 		caPath := filepath.Join(tlsDir, ca)
 		certPath := filepath.Join(tlsDir, certFile)
 		keyPath := filepath.Join(tlsDir, keyFile)
+
+		fileExists := func(path string) bool {
+			if _, err := os.Stat(path); err != nil {
+				errs = append(errs, fmt.Sprintf("%s: %v", path, err))
+				return false
+			}
+			return true
+		}
+
 		if fileExists(caPath) && fileExists(certPath) && fileExists(keyPath) {
 			return caPath, certPath, keyPath, true
 		}
@@ -42,7 +51,7 @@ func ResolveTLSFilesFromDir(tlsDir string) (caCert, cert, key string, err error)
 		return caCert, cert, key, nil
 	}
 
-	return "", "", "", errors.New("directory didn't contain one or more of the needed files")
+	return "", "", "", errors.New("error reading one or more of the needed files from directory:\n" + strings.Join(errs, "\n"))
 }
 
 // ResolveClient resolves a client from CLI args
